@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="B점을 사분원 위에서 움직이며 색선의 길이 변화를 살펴보는 그림">
+  <title>사분원 · 각도와 색선의 길이</title>
+  <style>
+    :root { color-scheme: light; --ink: #303030; --ray: #666666; --pink: #df397a; --green: #a5bf2b; --blue: #0088b9; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #fff; }
+    body { min-width: 280px; }
+    main { width: min(1140px, 100%); min-height: 100svh; margin: 0 auto; padding: 24px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; align-items: center; }
+    .diagram-panel { min-width: 0; margin: 0; }
+    .diagram { display: block; width: 100%; height: auto; overflow: visible; user-select: none; -webkit-user-select: none; }
+    .diagram text { fill: var(--ink); font-family: "Times New Roman", "Cambria Math", serif; font-size: 34px; font-weight: 400; pointer-events: none; }
+    .diagram .math { font-style: italic; }
+    .diagram .unit { font-size: 31px; }
+    .diagram .actual-angle { font-size: 23px; font-style: normal; }
+    .diagram .axis { stroke: var(--ink); stroke-width: 1.7; fill: none; }
+    .diagram .arc { stroke: var(--ink); stroke-width: 1.9; fill: none; }
+    .diagram .ray { stroke: var(--ray); stroke-width: 3.4; fill: none; stroke-linecap: round; }
+    .diagram .right-angle { stroke: var(--ink); stroke-width: 1.3; fill: none; }
+    .diagram .angle-arc { stroke: var(--ray); stroke-width: 1.7; fill: none; }
+    .diagram .pink { stroke: var(--pink); stroke-width: 5.2; fill: none; stroke-linecap: round; }
+    .diagram .green { stroke: var(--green); stroke-width: 5.2; fill: none; stroke-linecap: round; }
+    .diagram .blue { stroke: var(--blue); stroke-width: 5.2; fill: none; stroke-linecap: round; }
+    .diagram .drag-target { touch-action: none; cursor: grab; }
+    .diagram.dragging .drag-target { cursor: grabbing; }
+    .diagram .arc-hit { stroke: transparent; stroke-width: 32; fill: none; pointer-events: stroke; }
+    .diagram .handle-hit { fill: transparent; }
+    .diagram .handle-dot { fill: var(--ink); stroke: white; stroke-width: 2.8; }
+    .diagram .handle-focus { fill: none; stroke: var(--blue); stroke-width: 2; opacity: 0; }
+    .diagram .handle:focus { outline: none; }
+    .diagram .handle:focus-visible .handle-focus { opacity: 1; }
+    .diagram .handle:hover .handle-dot { fill: #111; }
+    .readouts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin: 8px 0 12px; padding: 0 5.6% 0 14.4%; font-family: "Malgun Gothic", "Apple SD Gothic Neo", Arial, sans-serif; }
+    .readouts--single { grid-template-columns: minmax(0, 1fr); }
+    .readout-label { display: flex; align-items: center; gap: 8px; color: #526575; font-size: 13px; }
+    .segment-name { font-family: "Times New Roman", serif; font-size: 15px; color: #233442; text-decoration: overline; text-decoration-thickness: 1px; }
+    .swatch { width: 22px; height: 2px; flex: 0 0 22px; border-radius: 1px; }
+    .swatch-pink { background: var(--pink); }
+    .swatch-green { background: var(--green); }
+    .swatch-blue { background: var(--blue); }
+    .readout-value { display: block; margin-top: 7px; color: #233442; font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.25; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+    @media (max-width: 720px) { main { min-height: 0; grid-template-columns: 1fr; gap: 26px; padding: 16px 12px 24px; } .diagram-panel { width: 100%; max-width: 510px; margin: 0 auto; } }
+    @media print { main { min-height: 0; padding: 0; grid-template-columns: 1fr 1fr; gap: 20px; } }
+  </style>
+</head>
+<body>
+  <main aria-label="B점을 움직일 수 있는 두 사분원 그림">
+    <figure class="diagram-panel">
+    <svg id="sine-cosine" class="diagram" viewBox="0 0 500 520" xmlns="http://www.w3.org/2000/svg" aria-labelledby="left-title left-desc">
+      <title id="left-title">BC와 OC의 길이 변화</title>
+      <desc id="left-desc">B점을 마우스나 손가락으로 원호 위에서 움직이세요. 분홍색은 BC, 초록색은 OC입니다. B점에 초점을 맞추고 방향키로도 움직일 수 있습니다.</desc>
+      <defs>
+        <marker id="left-axis-arrow" viewBox="0 0 12 10" refX="10" refY="5" markerWidth="11" markerHeight="10" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M 0 0 L 12 5 L 0 10 L 3 5 Z" fill="#303030"/></marker>
+      </defs>
+      <path class="axis" d="M 72 48 V 452 H 474" marker-start="url(#left-axis-arrow)" marker-end="url(#left-axis-arrow)"/>
+      <path class="arc" d="M 72 102 A 350 350 0 0 1 422 452"/>
+      <line data-part="ray" class="ray"/>
+      <path data-part="square" class="right-angle"/>
+      <line data-part="oc" class="green"/>
+      <line data-part="bc" class="pink"/>
+      <path data-part="angle" class="angle-arc"/>
+      <text data-part="alpha" class="math">a<tspan data-part="angle-value" class="actual-angle" dx="7">= 45.0°</tspan></text>
+      <text x="48" y="493" text-anchor="end">O</text>
+      <text x="437" y="437">A</text>
+      <text data-part="c-label" text-anchor="middle">C</text>
+      <text data-part="b-label">B</text>
+      <text x="466" y="491" class="math">x</text>
+      <text x="49" y="61" class="math" text-anchor="end">y</text>
+      <text x="422" y="491" class="unit" text-anchor="middle">1</text>
+      <text x="57" y="116" class="unit" text-anchor="end">1</text>
+      <path class="arc-hit drag-target" d="M 72 102 A 350 350 0 0 1 422 452"/>
+      <g data-part="handle" class="handle drag-target" role="slider" tabindex="0" aria-label="왼쪽 그림 B점의 각도" aria-valuemin="0" aria-valuemax="90" aria-valuenow="45" aria-orientation="horizontal">
+        <circle class="handle-hit" r="32"/>
+        <circle class="handle-focus" r="14"/>
+        <circle class="handle-dot" r="7.5"/>
+      </g>
+    </svg>
+    <figcaption class="readouts">
+      <div>
+        <div id="bc-caption" class="readout-label"><span class="swatch swatch-pink" aria-hidden="true"></span><span><span class="segment-name">BC</span>의 길이</span></div>
+        <output data-metric="bc" class="readout-value" aria-labelledby="bc-caption" aria-live="off">0.7071</output>
+      </div>
+      <div>
+        <div id="oc-caption" class="readout-label"><span class="swatch swatch-green" aria-hidden="true"></span><span><span class="segment-name">OC</span>의 길이</span></div>
+        <output data-metric="oc" class="readout-value" aria-labelledby="oc-caption" aria-live="off">0.7071</output>
+      </div>
+    </figcaption>
+    </figure>
+
+    <figure class="diagram-panel">
+    <svg id="tangent" class="diagram" viewBox="0 0 500 520" xmlns="http://www.w3.org/2000/svg" aria-labelledby="right-title right-desc">
+      <title id="right-title">AD의 길이 변화</title>
+      <desc id="right-desc">B점을 원호 위에서 움직이면 파란색 AD의 길이가 바뀝니다. 두 그림의 B점은 각각 독립적으로 움직입니다. D가 그림 밖에 있으면 파란색 위쪽 화살표가 선의 이어짐을 나타냅니다.</desc>
+      <defs>
+        <marker id="right-axis-arrow" viewBox="0 0 12 10" refX="10" refY="5" markerWidth="11" markerHeight="10" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M 0 0 L 12 5 L 0 10 L 3 5 Z" fill="#303030"/></marker>
+        <marker id="blue-continuation" viewBox="0 0 14 12" refX="12" refY="6" markerWidth="14" markerHeight="12" orient="auto" markerUnits="userSpaceOnUse"><path d="M 0 0 L 14 6 L 0 12 L 3 6 Z" fill="#0088b9"/></marker>
+      </defs>
+      <path class="axis" d="M 72 48 V 452 H 474" marker-start="url(#right-axis-arrow)" marker-end="url(#right-axis-arrow)"/>
+      <path class="arc" d="M 72 102 A 350 350 0 0 1 422 452"/>
+      <line data-part="ray" class="ray"/>
+      <path data-part="square" class="right-angle"/>
+      <line data-part="ad" class="blue"/>
+      <path data-part="angle" class="angle-arc"/>
+      <text data-part="alpha" class="math">a<tspan data-part="angle-value" class="actual-angle" dx="7">= 45.0°</tspan></text>
+      <text x="48" y="493" text-anchor="end">O</text>
+      <text x="437" y="437">A</text>
+      <text data-part="b-label">B</text>
+      <text data-part="d-label" text-anchor="middle">D</text>
+      <text x="466" y="491" class="math">x</text>
+      <text x="49" y="61" class="math" text-anchor="end">y</text>
+      <text x="422" y="491" class="unit" text-anchor="middle">1</text>
+      <text x="57" y="116" class="unit" text-anchor="end">1</text>
+      <path class="arc-hit drag-target" d="M 72 102 A 350 350 0 0 1 422 452"/>
+      <g data-part="handle" class="handle drag-target" role="slider" tabindex="0" aria-label="오른쪽 그림 B점의 각도" aria-valuemin="0" aria-valuemax="90" aria-valuenow="45" aria-orientation="horizontal">
+        <circle class="handle-hit" r="32"/>
+        <circle class="handle-focus" r="14"/>
+        <circle class="handle-dot" r="7.5"/>
+      </g>
+    </svg>
+    <figcaption class="readouts readouts--single">
+      <div>
+        <div id="ad-caption" class="readout-label"><span class="swatch swatch-blue" aria-hidden="true"></span><span><span class="segment-name">AD</span>의 길이</span></div>
+        <output data-metric="ad" class="readout-value" aria-labelledby="ad-caption" aria-live="off">1.0000</output>
+      </div>
+    </figcaption>
+    </figure>
+  </main>
+  <div id="angle-status" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+  <script>
+    (() => {
+      'use strict';
+      const origin = { x: 72, y: 452 };
+      const radius = 350;
+      const top = 48;
+      const diagrams = [...document.querySelectorAll('.diagram')].map(svg => ({
+        svg,
+        angle: Math.PI / 4,
+        metrics: Object.fromEntries([...svg.closest('.diagram-panel').querySelectorAll('[data-metric]')].map(node => [node.dataset.metric, node])),
+        parts: Object.fromEntries([...svg.querySelectorAll('[data-part]')].map(node => [node.dataset.part, node]))
+      }));
+      let activeDrag = null;
+      let announcementTimer;
+      const set = (node, attributes) => {
+        for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, value);
+      };
+      const position = value => ({ x: origin.x + radius * Math.cos(value), y: origin.y - radius * Math.sin(value) });
+      const ray = (node, endpoint) => set(node, { x1: origin.x, y1: origin.y, x2: endpoint.x, y2: endpoint.y });
+      const rightAngle = (node, x, height, width) => {
+        const size = Math.min(19, height * 0.65, width * 0.65);
+        set(node, { d: size > 0.5 ? `M ${x - size} ${origin.y} V ${origin.y - size} H ${x}` : '' });
+      };
+      const tangentEndpoint = value => {
+        if (value >= Math.PI / 2 - 1e-10) return { x: origin.x, y: top, clipped: true };
+        const height = radius * Math.tan(value);
+        if (height > origin.y - top) return { x: origin.x + (origin.y - top) / Math.tan(value), y: top, clipped: true };
+        return { x: origin.x + radius, y: origin.y - height, clipped: false };
+      };
+      const render = diagram => {
+        const { svg, parts, angle, metrics } = diagram;
+        const b = position(angle);
+        const degrees = angle * 180 / Math.PI;
+          const left = svg.id === 'sine-cosine';
+          const endpoint = left ? b : tangentEndpoint(angle);
+          ray(parts.ray, endpoint);
+          if (left) {
+            set(parts.oc, { x1: origin.x, y1: origin.y, x2: b.x, y2: origin.y, visibility: angle === Math.PI / 2 ? 'hidden' : 'visible' });
+            set(parts.bc, { x1: b.x, y1: b.y, x2: b.x, y2: origin.y, visibility: angle === 0 ? 'hidden' : 'visible' });
+            rightAngle(parts.square, b.x, origin.y - b.y, b.x - origin.x);
+            set(parts['c-label'], { x: Math.min(b.x, 386), y: 493 });
+          } else {
+            set(parts.ad, { x1: origin.x + radius, y1: origin.y, x2: origin.x + radius, y2: endpoint.y, visibility: angle === 0 ? 'hidden' : 'visible' });
+            if (endpoint.clipped) parts.ad.setAttribute('marker-end', 'url(#blue-continuation)');
+            else parts.ad.removeAttribute('marker-end');
+            set(parts['d-label'], { x: origin.x + radius, y: endpoint.y - (angle < 0.2 ? 28 : 17), visibility: endpoint.clipped ? 'hidden' : 'visible' });
+            rightAngle(parts.square, origin.x + radius, origin.y - endpoint.y, radius);
+          }
+          const angleRadius = 59;
+          const arcEnd = { x: origin.x + angleRadius * Math.cos(angle), y: origin.y - angleRadius * Math.sin(angle) };
+          set(parts.angle, { d: angle > 0.001 ? `M ${origin.x + angleRadius} ${origin.y} A ${angleRadius} ${angleRadius} 0 0 0 ${arcEnd.x} ${arcEnd.y}` : '' });
+          set(parts.alpha, { x: origin.x + 84 * Math.cos(angle / 2), y: origin.y - 84 * Math.sin(angle / 2) + (degrees < 12 ? -12 : 7) });
+          parts['angle-value'].textContent = `= ${degrees.toFixed(1)}°`;
+          if (left) {
+            metrics.bc.textContent = Math.sin(angle).toFixed(4);
+            metrics.oc.textContent = Math.cos(angle).toFixed(4);
+          } else {
+            metrics.ad.textContent = angle >= Math.PI / 2 - 1e-10 ? '정의되지 않음' : Math.tan(angle).toFixed(4);
+          }
+          // Keep B away from the axis labels and the tangent endpoint.
+          let bLabelX = angle < (left ? 0.2 : 0.55) ? b.x - 38 : b.x + 15;
+          let bLabelY = b.y - 16;
+          if (!left && angle >= 0.55 && angle <= 1.05) { bLabelX = b.x - 8; bLabelY = b.y - 32; }
+          if (!left && angle > 1.05) bLabelY = b.y + 45;
+          set(parts['b-label'], { x: bLabelX, y: bLabelY });
+          set(parts.handle, { transform: `translate(${b.x} ${b.y})`, 'aria-valuenow': degrees.toFixed(1), 'aria-valuetext': `${degrees.toFixed(1)}도` });
+          svg.dataset.angle = degrees.toFixed(4);
+      };
+      const update = (diagram, value) => {
+        let angle = Math.min(Math.PI / 2, Math.max(0, value));
+        // Use the displayed 0.1-degree angle for the length calculations too.
+        const degrees = Math.round(angle * 180 / Math.PI * 10) / 10;
+        angle = degrees * Math.PI / 180;
+        // Snap the endpoints so all zero-length lines really vanish.
+        if (angle < 0.001) angle = 0;
+        if (Math.PI / 2 - angle < 0.001) angle = Math.PI / 2;
+        diagram.angle = angle;
+        render(diagram);
+      };
+      const announce = diagram => {
+        clearTimeout(announcementTimer);
+        announcementTimer = setTimeout(() => {
+          const name = diagram.svg.id === 'sine-cosine' ? '왼쪽' : '오른쪽';
+          document.getElementById('angle-status').textContent = `${name} B점의 각도 ${(diagram.angle * 180 / Math.PI).toFixed(1)}도`;
+        }, 150);
+      };
+      const fromPointer = (diagram, event) => {
+        const matrix = diagram.svg.getScreenCTM();
+        if (!matrix) return;
+        const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
+        update(diagram, Math.atan2(origin.y - point.y, point.x - origin.x));
+      };
+      const finishDrag = event => {
+        if (!activeDrag || event.pointerId !== activeDrag.id) return;
+        const { svg, id, diagram } = activeDrag;
+        activeDrag = null;
+        svg.classList.remove('dragging');
+        if (svg.hasPointerCapture(id)) svg.releasePointerCapture(id);
+        announce(diagram);
+      };
+      for (const diagram of diagrams) {
+        const { svg, parts } = diagram;
+        svg.addEventListener('pointerdown', event => {
+          if (activeDrag || !event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0) || !event.target.closest('.drag-target')) return;
+          event.preventDefault();
+          activeDrag = { svg, id: event.pointerId, diagram };
+          svg.classList.add('dragging');
+          svg.setPointerCapture(event.pointerId);
+          parts.handle.focus({ preventScroll: true });
+          fromPointer(diagram, event);
+        });
+        svg.addEventListener('pointermove', event => {
+          if (activeDrag?.svg === svg && activeDrag.id === event.pointerId) fromPointer(diagram, event);
+        });
+        svg.addEventListener('pointerup', finishDrag);
+        svg.addEventListener('pointercancel', finishDrag);
+        svg.addEventListener('lostpointercapture', finishDrag);
+        parts.handle.addEventListener('keydown', event => {
+          const step = (event.shiftKey ? 5 : 1) * Math.PI / 180;
+          const angle = diagram.angle;
+          let next;
+          if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') next = angle - step;
+          else if (event.key === 'ArrowRight' || event.key === 'ArrowUp') next = angle + step;
+          else if (event.key === 'Home') next = 0;
+          else if (event.key === 'End') next = Math.PI / 2;
+          else return;
+          event.preventDefault();
+          update(diagram, next);
+          announce(diagram);
+        });
+        render(diagram);
+      }
+    })();
+  </script>
+</body>
+</html>
